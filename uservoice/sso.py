@@ -17,14 +17,16 @@ def generate_sso_token(subdomain_name, sso_key, user_attributes, valid_for = 300
     current_time = (datetime.datetime.now(pytz.utc) + datetime.timedelta(seconds=valid_for)).strftime('%Y-%m-%d %H:%M:%S')
     user_attributes.setdefault('expires', current_time)
     user_json = json.dumps(user_attributes, separators=(',',':'))
-    iv = "OpenSSL for Ruby"
+    iv = b"OpenSSL for Ruby"
     block_size = 16
 
     salted = sso_key + subdomain_name
-    saltedHash = hashlib.sha1(salted.encode('utf8')).digest()[:16]
+    if getattr(salted, 'encode', None) is not None:
+        salted = salted.encode('utf8')
+    saltedHash = hashlib.sha1(salted).digest()[:16]
 
     json_bytes = array.array('b', user_json.encode('utf8'))
-    iv_bytes = array.array('b', iv.encode('utf8'))
+    iv_bytes = array.array('b', iv)
 
     for i in range(0, 16):
         json_bytes[i] = operator.xor(json_bytes[i], iv_bytes[i])
